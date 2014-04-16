@@ -18,15 +18,38 @@ static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
 class PageSegment
 {
 	public:
-	PageSegment(int seg) {segment = seg;};
+	PageSegment(int seg): count(0) {segmentNumber = seg;};
 	const int getSegment() const;
-	void incrementCount();
+	PageSegment& operator++();
 	const int getCount() const;
+	PageSegment& operator+(const PageSegment& ps);
 
 	private:
 	int segmentNumber;
 	int count;
 };
+
+PageSegment& PageSegment::operator++()
+{
+	count++;
+	return *this;
+}
+
+PageSegment& PageSegment::operator+(const PageSegment& ps)
+{
+	count += ps.count;
+	return *this;
+}
+
+const int PageSegment::getSegment() const
+{
+	return segmentNumber;
+}
+
+const int PageSegment::getCount() const
+{
+	return count;
+}
 
 class SetPointers
 {
