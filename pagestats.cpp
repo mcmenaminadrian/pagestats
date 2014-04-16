@@ -1,12 +1,19 @@
 #include <iostream>
+#include <vector>
 #include <set>
+#include <algorithm>
 #include <cstdlib>
 #include <cstdio>
 #include <expat.h>
+#include <curses.h>
+#include <pthread.h>
+
+using namespace std;
 
 #define BUFFSZ 512
 
 static char outputfile[BUFFSZ];
+static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
 
 class PageSegment
 {
@@ -19,7 +26,20 @@ class PageSegment
 	private:
 	int segmentNumber;
 	int count;
-}
+};
+
+class SetPointers
+{
+	public:
+	set<PageSegment>& oCount;
+	set<PageSegment>& oMemory;
+	set<PageSegment>& oCode;
+	set<PageSegment>* lCount;
+	set<PageSegment>* lMemory;
+	set<PageSegment>* lCode;
+	char* threadPath;
+	int threadID;
+};
 
 void usage()
 {
@@ -27,11 +47,33 @@ void usage()
 	cout << "pagestats [control file] [output file]\n";
 }
 
-static void 
+static void* hackMemory(void* tSets)
+{
+	
+
+
+pthread_t* 
 countThread(int threadID, char* threadPath,
 	set<PageSegment>& overallCount, set<PageSegment>& memoryCount,
 	set<PageSegment>& codeCount>)
 {
+
+	//parse each file in parallel
+	SetPointers* threadSets = new SetPointers();
+	threadSets->lCount = new set<PageSegment>();
+	threadSets->lMemory = new set<PageSegment>();
+	threadSets->lCode = new set<PageSegment>();
+	threadSet->oCount = overallCount;
+	threadSet->oMemory = memoryCount;
+	threadSet->oCode = codeCount;
+	threadSet->threadPath = threadPath;
+	threadSet->threadID = threadID;
+	
+	pthread_t* aThread = new pthread_t();
+	
+	pthread_create(aThread, NULL, hackMemory, (void*)threadSets);
+	return aThread;
+	
 }
 
 static void XMLCALL
@@ -42,10 +84,11 @@ static void XMLCALL
 	set<PageSegment> overallCount;
 	set<PageSegment> memoryCount;
 	set<PageSegment> codeCount;
+	vector<pthread_t> threads;
 	
 	int i;
 	int threadID = 0;
-	char threadPath[BUFFSZ]; 
+	char* threadPath = NULL; 
 	if (strcmp(name, "file") == 0) {
 		for (i = 0; attr[i]; i += 2) {
 			if (strcmp(attr[i], "thread") == 0) {
@@ -55,13 +98,18 @@ static void XMLCALL
 		}
 		for (i = 0; attr[i]; i += 2) {
 			if (strcmp(attr[i], "path") == 0) {
+				threadPath = new char[BUFFSZ];		
 				strcpy(threadPath, attr[i + 1]);
 				break;
 			}
 		}
-		countThread(threadID, threadPath, overallCount, memoryCount,
-			codeCount);
-	} 
+		threads.push_back(countThread(threadID, threadPath,
+			overallCount, memoryCount, codeCount));
+	}
+	threads.for_each(threads.begin(), threads.end(),
+		[](pthread_t* t){pthread_join(*t, NULL);});
+	threads.for_each(threads.begin(), threads.end(),
+		[](pthread_t* t){delete t;});
 }
 
 int main(int argc, char* argv[])
@@ -92,6 +140,15 @@ int main(int argc, char* argv[])
 		exit(-1);
 	}
 
+
+	initscr();
+	move(0, 0);
+	printw("Pagestats: which bits of pages are being touched");
+	move(1, 0);
+	printw("Copyright (c), Adrian McMenamin, 2014");
+	move(2, 0);
+	printw("See https://github.com/mcmenaminadrian for licence details.");
+	refresh(); 
 	do {
 		len = fread(data, 1, sizeof(data), inXML);
 		done = len < sizeof(data);
