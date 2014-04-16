@@ -49,7 +49,47 @@ void usage()
 
 static void* hackMemory(void* tSets)
 {
-	
+	//parse the file
+	size_t len = 0;
+	char data[BUFFSZ];
+	SetPointers* threadSets = (SetPointers*) tSets; 
+	XML_Parser parser_Thread = XML_ParserCreate("UTF-8");
+	if (!parser_Thread) {
+		cerr << "Could not create thread parser\n";
+		return NULL;
+	}
+
+	XML_SetStartElementHandler(parser_Thread, hackHandler);
+	FILE* threadXML = fopen(threadSets->threadPath, "r");
+	if (threadXML == NULL) {
+		cerr << "Could not open " << threadSets->threadPath << "\n";
+		XML_ParserFree(parserThread);
+		return NULL;
+	}
+
+	do {
+		len = fread(data, 1, sizeof(data), threadXML);	
+		if (XML_Parse(parser_Thread, data, len, 0) == 0) {
+			enum XML_Error errcde = XML_GetErrorCode(parser_Thread);
+			printf("ERROR: %s\n", XML_ErrorString(errcde));
+			printf("Error at column number %lu\n",
+				XML_GetCurrentColumnNumber(parser_Thread));
+			printf("Error at line number %lu\n",
+				XML_GetCurrentLineNumber(parser_Thread));
+			return NULL;
+		}
+	} while(!done);
+
+	pthread_mutex_lock(&countLock);
+	set<PageSegment>::iterator it;
+	set<PageSegment>::iterator finder;
+	for (it = threadSet->lCount->begin(); it != threadCount->lCount->end(),
+		it++)
+	{
+		int segment = threadSet->lCount->getSegment();
+		if (threadSet->oCount.find(segment){
+			threadSet->oCount(sege
+
 
 
 pthread_t* 
