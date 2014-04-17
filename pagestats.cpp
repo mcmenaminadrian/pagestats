@@ -15,51 +15,15 @@ using namespace std;
 static char outputfile[BUFFSZ];
 static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
 
-class PageSegment
-{
-	public:
-	PageSegment(int seg): count(0) {segmentNumber = seg;};
-	const int getSegment() const;
-	PageSegment& operator++();
-	const int getCount() const;
-	PageSegment& operator+(const PageSegment& ps);
-
-	private:
-	int segmentNumber;
-	int count;
-};
-
-PageSegment& PageSegment::operator++()
-{
-	count++;
-	return *this;
-}
-
-PageSegment& PageSegment::operator+(const PageSegment& ps)
-{
-	count += ps.count;
-	return *this;
-}
-
-const int PageSegment::getSegment() const
-{
-	return segmentNumber;
-}
-
-const int PageSegment::getCount() const
-{
-	return count;
-}
-
 class SetPointers
 {
 	public:
-	set<PageSegment>& oCount;
-	set<PageSegment>& oMemory;
-	set<PageSegment>& oCode;
-	set<PageSegment>* lCount;
-	set<PageSegment>* lMemory;
-	set<PageSegment>* lCode;
+	map<int, int>& oCount;
+	map<int, int>& oMemory;
+	map<int, int>& oCode;
+	map<int, int>* lCount;
+	map<int, int>* lMemory;
+	map<int, int>* lCode;
 	char* threadPath;
 	int threadID;
 };
@@ -104,28 +68,30 @@ static void* hackMemory(void* tSets)
 	} while(!done);
 
 	pthread_mutex_lock(&countLock);
-	set<PageSegment>::iterator it;
-	set<PageSegment>::iterator finder;
-	for (it = threadSet->lCount->begin(); it != threadCount->lCount->end(),
-		it++)
-	{
+	map<int, int>::iterator itLocal;
+	map<int, int>::iterator itGlobal;
+	for (itLocal = threadSet->lCount->begin();
+		itLocal != threadCount->lCount->end(), it++) {
 		int segment = threadSet->lCount->getSegment();
-		if (threadSet->oCount.find(segment){
-			threadSet->oCount(sege
+		itGlobal = threadSet->oCount.find(segment);
+		if (itGlobal != itGlobal.end()){
+			*itGlobal->second += itLocal->second
+		} else {
+			
 
 
 
 pthread_t* 
 countThread(int threadID, char* threadPath,
-	set<PageSegment>& overallCount, set<PageSegment>& memoryCount,
-	set<PageSegment>& codeCount>)
+	map<int, int>& overallCount, map<int, int>& memoryCount,
+	map<int, int>& codeCount>)
 {
 
 	//parse each file in parallel
 	SetPointers* threadSets = new SetPointers();
-	threadSets->lCount = new set<PageSegment>();
-	threadSets->lMemory = new set<PageSegment>();
-	threadSets->lCode = new set<PageSegment>();
+	threadSets->lCount = new map<int, int>();
+	threadSets->lMemory = new map<int, int>();
+	threadSets->lCode = new map<int, int>();
 	threadSet->oCount = overallCount;
 	threadSet->oMemory = memoryCount;
 	threadSet->oCode = codeCount;
@@ -140,13 +106,13 @@ countThread(int threadID, char* threadPath,
 }
 
 static void XMLCALL
-	fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
+fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 {
 
-	//lots of different sets
-	set<PageSegment> overallCount;
-	set<PageSegment> memoryCount;
-	set<PageSegment> codeCount;
+	//lots of different maps
+	map<int, int> overallCount;
+	map<int, int> memoryCount;
+	map<int, int> codeCount;
 	vector<pthread_t> threads;
 	
 	int i;
