@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <expat.h>
-#include <curses.h>
 #include <pthread.h>
 
 using namespace std;
@@ -18,9 +17,9 @@ static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
 class SetPointers
 {
 	public:
-	map<int, int> oCount;
-	map<int, int> oMemory;
-	map<int, int> oCode;
+	map<int, int>* oCount;
+	map<int, int>* oMemory;
+	map<int, int>* oCode;
 	map<int, int>* lCount;
 	map<int, int>* lMemory;
 	map<int, int>* lCode;
@@ -140,17 +139,18 @@ static void* hackMemory(void* tSets)
 	} while(!done);
 
 	pthread_mutex_lock(&countLock);
+	cout << "Thread handled \n";
 	map<int, int>::iterator itLocal;
 	map<int, int>::iterator itGlobal;
 
 	for (itLocal = threadSets->lCount->begin();
 		itLocal != threadSets->lCount->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oCount.find(segment);
-		if (itGlobal != threadSets->oCount.end()){
+		itGlobal = threadSets->oCount->find(segment);
+		if (itGlobal != threadSets->oCount->end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oCount.insert(pair<int, int>(
+			threadSets->oCount->insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -158,11 +158,11 @@ static void* hackMemory(void* tSets)
 	for (itLocal = threadSets->lMemory->begin();
 		itLocal != threadSets->lMemory->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oMemory.find(segment);
-		if (itGlobal != threadSets->oMemory.end()){
+		itGlobal = threadSets->oMemory->find(segment);
+		if (itGlobal != threadSets->oMemory->end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oMemory.insert(pair<int, int>(
+			threadSets->oMemory->insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -170,11 +170,11 @@ static void* hackMemory(void* tSets)
 	for (itLocal = threadSets->lCode->begin();
 		itLocal != threadSets->lCode->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oCode.find(segment);
-		if (itGlobal != threadSets->oCode.end()){
+		itGlobal = threadSets->oCode->find(segment);
+		if (itGlobal != threadSets->oCode->end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oCode.insert(pair<int, int>(
+			threadSets->oCode->insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -192,15 +192,15 @@ countThread(int threadID, char* threadPath,
 	map<int, int>& overallCount, map<int, int>& memoryCount,
 	map<int, int>& codeCount)
 {
-
+	cout << "Handling thread " << threadID << "\n";
 	//parse each file in parallel
 	SetPointers* threadSets = new SetPointers();
 	threadSets->lCount = new map<int, int>();
 	threadSets->lMemory = new map<int, int>();
 	threadSets->lCode = new map<int, int>();
-	threadSets->oCount = overallCount;
-	threadSets->oMemory = memoryCount;
-	threadSets->oCode = codeCount;
+	threadSets->oCount = &overallCount;
+	threadSets->oMemory = &memoryCount;
+	threadSets->oCode = &codeCount;
 	threadSets->threadPath = threadPath;
 	threadSets->threadID = threadID;
 	
@@ -224,8 +224,6 @@ void killoff(pthread_t* t)
 static void XMLCALL
 fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 {
-
-	//lots of different maps
 	map<int, int> overallCount;
 	map<int, int> memoryCount;
 	map<int, int> codeCount;
@@ -253,6 +251,12 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 	}
 	for_each(threads.begin(), threads.end(), joinup);
 	for_each(threads.begin(), threads.end(), killoff);
+	
+	map<int, int>::iterator it;
+	for (it = memoryCount.begin(); it != memoryCount.end(); it++)
+	{
+		cout << "Segment: " << it->first << "Count: " << it->second;
+	}
 }
 
 int main(int argc, char* argv[])
@@ -284,14 +288,9 @@ int main(int argc, char* argv[])
 	}
 
 
-	initscr();
-	move(0, 0);
-	printw("Pagestats: which bits of pages are being touched");
-	move(1, 0);
-	printw("Copyright (c), Adrian McMenamin, 2014");
-	move(2, 0);
-	printw("See https://github.com/mcmenaminadrian for licence details.");
-	refresh(); 
+	cout << "Pagestats: which bits of pages are being touched\n";
+	cout << "Copyright (c), Adrian McMenamin, 2014 \n";
+	cout << "See https://github.com/mcmenaminadrian for licence details.\n";
 	do {
 		len = fread(data, 1, sizeof(data), inXML);
 		done = len < sizeof(data);
