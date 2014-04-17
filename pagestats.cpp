@@ -52,9 +52,9 @@ hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
 
 				itLocal = sets->lCount->find(segment);
 				if (itLocal != sets->lCount->end()) {
-					*itLocal->second++;
+					itLocal->second++;
 					if (modify) {
-						*itLocal->second++;
+						itLocal->second++;
 					}
 				} else {
 					if (!modify) {
@@ -68,13 +68,13 @@ hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
 					}
 				}
 				if (modify) {
-					*itLocal->second++;
+					itLocal->second++;
 				}
 
 				if (strcmp(name, "instruction") == 0) {
 					itLocal = sets->lCode->find(segment);
 					if (itLocal != sets->lCode->end()) {
-						*itLocal->second++;
+						itLocal->second++;
 					} else {
 						sets->lCode->
 						insert(
@@ -83,9 +83,9 @@ hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
 				} else {
 					itLocal = sets->lMemory->find(segment);
 					if (itLocal != sets->lMemory->end()) {
-						*itLocal->second++;
+						itLocal->second++;
 						if (modify) {
-							*itLocal->second++;
+							itLocal->second++;
 						}
 					} else {
 						if (!modify) {
@@ -108,6 +108,7 @@ static void* hackMemory(void* tSets)
 {
 	//parse the file
 	size_t len = 0;
+	bool done;
 	char data[BUFFSZ];
 	SetPointers* threadSets = (SetPointers*) tSets; 
 	XML_Parser parser_Thread = XML_ParserCreate("UTF-8");
@@ -120,12 +121,13 @@ static void* hackMemory(void* tSets)
 	FILE* threadXML = fopen(threadSets->threadPath, "r");
 	if (threadXML == NULL) {
 		cerr << "Could not open " << threadSets->threadPath << "\n";
-		XML_ParserFree(parserThread);
+		XML_ParserFree(parser_Thread);
 		return NULL;
 	}
 
 	do {
-		len = fread(data, 1, sizeof(data), threadXML);	
+		len = fread(data, 1, sizeof(data), threadXML);
+		done = len < sizeof(data);
 		if (XML_Parse(parser_Thread, data, len, 0) == 0) {
 			enum XML_Error errcde = XML_GetErrorCode(parser_Thread);
 			printf("ERROR: %s\n", XML_ErrorString(errcde));
@@ -141,45 +143,45 @@ static void* hackMemory(void* tSets)
 	map<int, int>::iterator itLocal;
 	map<int, int>::iterator itGlobal;
 
-	for (itLocal = threadSet->lCount->begin();
-		itLocal != threadCount->lCount->end(), it++) {
-		int segment = threadSet->lCount->getSegment();
-		itGlobal = threadSet->oCount.find(segment);
-		if (itGlobal != itGlobal.end()){
-			*itGlobal->second += itLocal->second
+	for (itLocal = threadSets->lCount->begin();
+		itLocal != threadSets->lCount->end(); itLocal++) {
+		int segment = itLocal->first;
+		itGlobal = threadSets->oCount.find(segment);
+		if (itGlobal != threadSets->oCount.end()){
+			itGlobal->second += itLocal->second;
 		} else {
-			threadSet->oCount.insert(pair<int, int>(
+			threadSets->oCount.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
 	
-	for (itLocal = threadSet->lMemory->begin();
-		itLocal != threadCount->lMemory->end(), it++) {
-		int segment = threadSet->lMemory->getSegment();
-		itGlobal = threadSet->oMemory.find(segment);
-		if (itGlobal != itGlobal.end()){
-			*itGlobal->second += itLocal->second
+	for (itLocal = threadSets->lMemory->begin();
+		itLocal != threadSets->lMemory->end(); itLocal++) {
+		int segment = itLocal->first;
+		itGlobal = threadSets->oMemory.find(segment);
+		if (itGlobal != threadSets->oMemory.end()){
+			itGlobal->second += itLocal->second;
 		} else {
-			threadSet->oMemory.insert(pair<int, int>(
+			threadSets->oMemory.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
 
-	for (itLocal = threadSet->lCode->begin();
-		itLocal != threadCount->lCode->end(), it++) {
-		int segment = threadSet->lCode->getSegment();
-		itGlobal = threadSet->oCode.find(segment);
-		if (itGlobal != itGlobal.end()){
-			*itGlobal->second += itLocal->second
+	for (itLocal = threadSets->lCode->begin();
+		itLocal != threadSets->lCode->end(); itLocal++) {
+		int segment = itLocal->first;
+		itGlobal = threadSets->oCode.find(segment);
+		if (itGlobal != threadSets->oCode.end()){
+			itGlobal->second += itLocal->second;
 		} else {
-			threadSet->oCode.insert(pair<int, int>(
+			threadSets->oCode.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
 	pthread_mutex_unlock(&countLock);
-	delete threadSet->lCount;
-	delete threadSet->lMemory;
-	delete threadSet->lCode;
+	delete threadSets->lCount;
+	delete threadSets->lMemory;
+	delete threadSets->lCode;
 }
 
 
@@ -187,7 +189,7 @@ static void* hackMemory(void* tSets)
 pthread_t* 
 countThread(int threadID, char* threadPath,
 	map<int, int>& overallCount, map<int, int>& memoryCount,
-	map<int, int>& codeCount>)
+	map<int, int>& codeCount)
 {
 
 	//parse each file in parallel
@@ -195,11 +197,11 @@ countThread(int threadID, char* threadPath,
 	threadSets->lCount = new map<int, int>();
 	threadSets->lMemory = new map<int, int>();
 	threadSets->lCode = new map<int, int>();
-	threadSet->oCount = overallCount;
-	threadSet->oMemory = memoryCount;
-	threadSet->oCode = codeCount;
-	threadSet->threadPath = threadPath;
-	threadSet->threadID = threadID;
+	threadSets->oCount = overallCount;
+	threadSets->oMemory = memoryCount;
+	threadSets->oCode = codeCount;
+	threadSets->threadPath = threadPath;
+	threadSets->threadID = threadID;
 	
 	pthread_t* aThread = new pthread_t();
 	
