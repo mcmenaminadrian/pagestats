@@ -227,7 +227,6 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 	map<int, int> overallCount;
 	map<int, int> memoryCount;
 	map<int, int> codeCount;
-	vector<pthread_t*> threads;
 	
 	int i;
 	int threadID = 0;
@@ -264,7 +263,8 @@ int main(int argc, char* argv[])
 	FILE* inXML;
 	char data[BUFFSZ]; 
 	size_t len = 0;
-	int done;	
+	int done;
+	vector<pthread_t*> threads;
 
 	if (argc < 3) {
 		usage();
