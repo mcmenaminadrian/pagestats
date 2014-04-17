@@ -18,9 +18,9 @@ static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
 class SetPointers
 {
 	public:
-	map<int, int>& oCount;
-	map<int, int>& oMemory;
-	map<int, int>& oCode;
+	map<int, int> oCount;
+	map<int, int> oMemory;
+	map<int, int> oCode;
 	map<int, int>* lCount;
 	map<int, int>* lMemory;
 	map<int, int>* lCode;
@@ -182,6 +182,7 @@ static void* hackMemory(void* tSets)
 	delete threadSets->lCount;
 	delete threadSets->lMemory;
 	delete threadSets->lCode;
+	return NULL;
 }
 
 
