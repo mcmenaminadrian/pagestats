@@ -34,6 +34,73 @@ void usage()
 	cout << "pagestats [control file] [output file]\n";
 }
 
+static void XMLCALL
+hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
+{
+	SetPointer* sets = static_cast<SetPointers*>(data);
+	if (strcmp(name, "instruction") == 0 || strcmp(name, "load") == 0 ||
+		strcmp(name, "modify")||strcmp(name, "store") == 0) {
+		bool modify = false;
+		if (strcmp(name, "modify") == 0) {
+			modify = true;
+		}
+		for (i = 0; attr[i]; i += 2) {
+			if (strcmp(attr[i], "address") == 0) {
+				address = strtol(attr[i+1], NULL, 16);
+			int segment = (address >> 4) & 0xFF;
+			map<int, int>::iterator itLocal;
+
+			itLocal = sets->lCount->find(segment);
+			if (itLocal != sets->lCount->end()) {
+				*itLocal->second++;
+				if (modify) {
+					*itLocal->second++;
+				}
+			} else {
+				if (!modify) {
+					sets->lCount->
+					insert(pair<int, int>(segment, 1));
+				} else {
+					sets->lCount->
+					insert(pair<int, int>(segment, 2));
+				}
+			}
+			if (modify) {
+				*itLocal->second++;
+			}
+
+			if (strcmp(name, "instruction") == 0) {
+				itLocal = sets->lCode->find(segment);
+				if (itLocal != sets->lCode->end()) {
+					*itLocal->second++;
+				} else {
+					sets->lCode->
+						insert(
+						pair<int, int>(segment, 1));
+				}
+			} else {
+				itLocal = sets->lMemory->find(segment);
+				if (itLocal != sets->lMemory->end()) {
+					*itLocal->second++;
+					if (modify) {
+						*itLocal->second++;
+					}
+				} else {
+					if (!modify) {
+						sets->lCode->
+						insert(pair<int, int>
+							(segment, 1));
+					} else {
+						sets->lCode->
+						insert(pair<int, int>
+							(segment, 2));
+					}
+				}
+			}
+		}
+	}		
+}
+
 static void* hackMemory(void* tSets)
 {
 	//parse the file
