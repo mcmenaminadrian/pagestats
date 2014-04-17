@@ -138,6 +138,16 @@ countThread(int threadID, char* threadPath,
 	
 }
 
+void joinup(pthread_t* t)
+{
+	pthread_join(*t, NULL);
+}
+
+void killoff(pthread_t* t)
+{
+	delete t;
+}
+
 static void XMLCALL
 fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 {
@@ -146,7 +156,7 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 	map<int, int> overallCount;
 	map<int, int> memoryCount;
 	map<int, int> codeCount;
-	vector<pthread_t> threads;
+	vector<pthread_t*> threads;
 	
 	int i;
 	int threadID = 0;
@@ -168,10 +178,8 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 		threads.push_back(countThread(threadID, threadPath,
 			overallCount, memoryCount, codeCount));
 	}
-	threads.for_each(threads.begin(), threads.end(),
-		[](pthread_t* t){pthread_join(*t, NULL);});
-	threads.for_each(threads.begin(), threads.end(),
-		[](pthread_t* t){delete t;});
+	for_each(threads.begin(), threads.end(), joinup);
+	for_each(threads.begin(), threads.end(), killoff);
 }
 
 int main(int argc, char* argv[])
