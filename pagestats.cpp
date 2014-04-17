@@ -116,7 +116,7 @@ static void* hackMemory(void* tSets)
 		cerr << "Could not create thread parser\n";
 		return NULL;
 	}
-
+	XML_SetUserData(parser_Thread, tSets);
 	XML_SetStartElementHandler(parser_Thread, hackHandler);
 	FILE* threadXML = fopen(threadSets->threadPath, "r");
 	if (threadXML == NULL) {
