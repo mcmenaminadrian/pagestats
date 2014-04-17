@@ -70,6 +70,7 @@ static void* hackMemory(void* tSets)
 	pthread_mutex_lock(&countLock);
 	map<int, int>::iterator itLocal;
 	map<int, int>::iterator itGlobal;
+
 	for (itLocal = threadSet->lCount->begin();
 		itLocal != threadCount->lCount->end(), it++) {
 		int segment = threadSet->lCount->getSegment();
@@ -77,7 +78,39 @@ static void* hackMemory(void* tSets)
 		if (itGlobal != itGlobal.end()){
 			*itGlobal->second += itLocal->second
 		} else {
-			
+			threadSet->oCount.insert(pair<int, int>(
+				itLocal->first, itLocal->second));
+		}
+	}
+	
+	for (itLocal = threadSet->lMemory->begin();
+		itLocal != threadCount->lMemory->end(), it++) {
+		int segment = threadSet->lMemory->getSegment();
+		itGlobal = threadSet->oMemory.find(segment);
+		if (itGlobal != itGlobal.end()){
+			*itGlobal->second += itLocal->second
+		} else {
+			threadSet->oMemory.insert(pair<int, int>(
+				itLocal->first, itLocal->second));
+		}
+	}
+
+	for (itLocal = threadSet->lCode->begin();
+		itLocal != threadCount->lCode->end(), it++) {
+		int segment = threadSet->lCode->getSegment();
+		itGlobal = threadSet->oCode.find(segment);
+		if (itGlobal != itGlobal.end()){
+			*itGlobal->second += itLocal->second
+		} else {
+			threadSet->oCode.insert(pair<int, int>(
+				itLocal->first, itLocal->second));
+		}
+	}
+	pthread_mutex_unlock(&countLock);
+	delete threadSet->lCount;
+	delete threadSet->lMemory;
+	delete threadSet->lCode;
+}
 
 
 
