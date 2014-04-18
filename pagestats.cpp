@@ -13,13 +13,14 @@ using namespace std;
 
 static char outputfile[BUFFSZ];
 static pthread_mutex_t countLock = PTHREAD_MUTEX_INITIALIZER;
+static map<int, int> overallCount;
+static map<int, int> overallMemory;
+static map<int, int> overallCode;
 
+//use this class to pass data to threads and parser
 class SetPointers
 {
 	public:
-	map<int, int>* oCount;
-	map<int, int>* oMemory;
-	map<int, int>* oCode;
 	map<int, int>* lCount;
 	map<int, int>* lMemory;
 	map<int, int>* lCode;
@@ -146,11 +147,11 @@ static void* hackMemory(void* tSets)
 	for (itLocal = threadSets->lCount->begin();
 		itLocal != threadSets->lCount->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oCount->find(segment);
-		if (itGlobal != threadSets->oCount->end()){
+		itGlobal = overallCount.find(segment);
+		if (itGlobal != overallCount.end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oCount->insert(pair<int, int>(
+			overallCount.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -158,11 +159,11 @@ static void* hackMemory(void* tSets)
 	for (itLocal = threadSets->lMemory->begin();
 		itLocal != threadSets->lMemory->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oMemory->find(segment);
-		if (itGlobal != threadSets->oMemory->end()){
+		itGlobal = overallMemory.find(segment);
+		if (itGlobal != overallMemory.end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oMemory->insert(pair<int, int>(
+			overallMemory.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -170,11 +171,11 @@ static void* hackMemory(void* tSets)
 	for (itLocal = threadSets->lCode->begin();
 		itLocal != threadSets->lCode->end(); itLocal++) {
 		int segment = itLocal->first;
-		itGlobal = threadSets->oCode->find(segment);
-		if (itGlobal != threadSets->oCode->end()){
+		itGlobal = overallCode.find(segment);
+		if (itGlobal != overallCode.end()){
 			itGlobal->second += itLocal->second;
 		} else {
-			threadSets->oCode->insert(pair<int, int>(
+			overallCode.insert(pair<int, int>(
 				itLocal->first, itLocal->second));
 		}
 	}
@@ -198,9 +199,6 @@ countThread(int threadID, char* threadPath,
 	threadSets->lCount = new map<int, int>();
 	threadSets->lMemory = new map<int, int>();
 	threadSets->lCode = new map<int, int>();
-	threadSets->oCount = &overallCount;
-	threadSets->oMemory = &memoryCount;
-	threadSets->oCode = &codeCount;
 	threadSets->threadPath = threadPath;
 	threadSets->threadID = threadID;
 	
@@ -224,9 +222,8 @@ void killoff(pthread_t* t)
 static void XMLCALL
 fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 {
-	map<int, int> overallCount;
-	map<int, int> memoryCount;
-	map<int, int> codeCount;
+
+	vector<pthread_t*>* pThreads = static_cast<vector<pthread_t*> >(data);
 	
 	int i;
 	int threadID = 0;
@@ -245,16 +242,8 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 				break;
 			}
 		}
-		threads.push_back(countThread(threadID, threadPath,
+		pthreads.push_back(countThread(threadID, threadPath,
 			overallCount, memoryCount, codeCount));
-	}
-	for_each(threads.begin(), threads.end(), joinup);
-	for_each(threads.begin(), threads.end(), killoff);
-	
-	map<int, int>::iterator it;
-	for (it = memoryCount.begin(); it != memoryCount.end(); it++)
-	{
-		cout << "Segment: " << it->first << "Count: " << it->second;
 	}
 }
 
@@ -278,7 +267,9 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "Could not create parser\n");
 		exit(-1);
 	}
+	
 
+	XML_SetUserData(p_ctrl, &threads);
 	XML_SetStartElementHandler(p_ctrl, fileHandler);
 	inXML = fopen(argv[1], "r");
 	if (inXML == NULL) {
@@ -305,5 +296,14 @@ int main(int argc, char* argv[])
 			exit(-1);
 		}
 	} while(!done);
+	for_each(threads.begin(), threads.end(), joinup);
+	for_each(threads.begin(), threads.end(), killoff);
+	
+	map<int, int>::iterator it;
+	for (it = overallMemory.begin(); it != overallMemory.end(); it++)
+	{
+		cout << "Segment: " << it->first << "Count: " << it->second;
+	}
+
 }
 
