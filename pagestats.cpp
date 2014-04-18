@@ -87,11 +87,11 @@ hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
 						}
 					} else {
 						if (!modify) {
-							sets->lCode->
+							sets->lMemory->
 							insert(pair<int, int>
 							(segment, 1));
 						} else {
-							sets->lCode->
+							sets->lMemory->
 							insert(pair<int, int>
 							(segment, 2));
 						}
