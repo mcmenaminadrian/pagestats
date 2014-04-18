@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <expat.h>
 #include <pthread.h>
 
@@ -295,10 +296,33 @@ int main(int argc, char* argv[])
 	for_each(threads.begin(), threads.end(), killoff);
 	
 	map<int, int>::iterator it;
+	ofstream overallFile;
+	ofstream memoryFile;
+	ofstream codeFile;
+	
+	overallFile.open("overallmem.txt");
+	for (it = overallCount.begin(); it != overallCount.end(); it++)
+	{
+		overallFile << it->first << "," << it->second << "\n";
+	}
+	overallFile.close();
+
+	memoryFile.open("memonly.txt");
 	for (it = overallMemory.begin(); it != overallMemory.end(); it++)
 	{
-		cout << "Segment: " << it->first << " Count: " << it->second << "\n";
+		memoryFile << it->first << "," << it->second << "\n";
 	}
+	memoryFile.close();
+
+	codeFile.open("codeonly.txt");
+	for (it = overallCode.begin(); it != overallCode.end(); it++)
+	{
+		codeFile << it->first << "," << it->second << "\n";
+	}
+	codeFile.close();
+
+	cout << "Program completed \n";
+	
 
 }
 
