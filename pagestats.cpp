@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <expat.h>
 #include <pthread.h>
 
@@ -66,9 +67,6 @@ hackHandler(void *data, const XML_Char *name, const XML_Char **attr)
 						insert(
 						pair<int, int>(segment, 2));
 					}
-				}
-				if (modify) {
-					itLocal->second++;
 				}
 
 				if (strcmp(name, "instruction") == 0) {
@@ -189,9 +187,7 @@ static void* hackMemory(void* tSets)
 
 
 pthread_t* 
-countThread(int threadID, char* threadPath,
-	map<int, int>& overallCount, map<int, int>& memoryCount,
-	map<int, int>& codeCount)
+countThread(int threadID, char* threadPath)
 {
 	cout << "Handling thread " << threadID << "\n";
 	//parse each file in parallel
@@ -223,7 +219,7 @@ static void XMLCALL
 fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 {
 
-	vector<pthread_t*>* pThreads = static_cast<vector<pthread_t*> >(data);
+	vector<pthread_t*>* pThreads = static_cast<vector<pthread_t*>*>(data);
 	
 	int i;
 	int threadID = 0;
@@ -242,8 +238,7 @@ fileHandler(void *data, const XML_Char *name, const XML_Char **attr)
 				break;
 			}
 		}
-		pthreads.push_back(countThread(threadID, threadPath,
-			overallCount, memoryCount, codeCount));
+		pThreads->push_back(countThread(threadID, threadPath));
 	}
 }
 
