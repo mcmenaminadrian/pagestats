@@ -297,7 +297,7 @@ int main(int argc, char* argv[])
 	map<int, int>::iterator it;
 	for (it = overallMemory.begin(); it != overallMemory.end(); it++)
 	{
-		cout << "Segment: " << it->first << "Count: " << it->second;
+		cout << "Segment: " << it->first << " Count: " << it->second << "\n";
 	}
 
 }
